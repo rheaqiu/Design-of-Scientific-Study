@@ -1,0 +1,110 @@
+---
+title: "STA305 Project Report"
+author: "Zhuojing Qiu"
+date: "05/12/2019"
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+  word_document: default
+---
+
+```{r setup, include=FALSE}
+library(readxl)
+library('FrF2')
+library(kableExtra)
+powerdat <- read_excel("/Users/Rachel/Desktop/Power Draining Time Measurement.xlsx")
+powerdat
+Time = powerdat$`Time Consumed`
+Display = powerdat$Display
+Wifi = powerdat$`Wifi`
+Brightness = powerdat$Brightness
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+```
+
+# Description
+As an university student, laptop is essential for everyday use. However, it is always troubling when laptop battery drains completely during school. Therefore, I would like to investigate the factors that could be draining my laptop battery, in order to make my laptop battery last longer. I carried out an experiment to see whether displaying video, turning on Wifi, and adjusting the screen brighter would speed up draining my laptop battery. This power draining investigation employed a $2^3$ factorial design with the factors listed below in Table1. 
+
+```{r, echo=FALSE}
+
+Factors <- c('Display','Wifi', 'Brightness')
+Level1 <- c('Displaying (+1)', 'On (+1)','16 bars (+1)')
+Level2 <- c('Not displaying (-1)','Off (-1)','3 bars (-1)')
+mydesign <- data.frame(Factors, Level1, Level2)
+kable_styling(knitr::kable(mydesign, caption='Design for power draining factors investigation'),position='center') 
+```
+
+I collected measurements of the time used to drain my laptop battery from 100% to 95% while varying Brightness, Display, Wi-Fi at two different levels each. I decided to use the battery level from 100% to 95% because the time used (in minutes) to consume 5% battery was longer than I expected. Also, I started timing at a 100% battery level, because it was easier to control as I could just fully charge my laptop after every measurement. 
+
+Notice that, there are in total 16 bars of brightness level to adjust. I defined 16 bars to be high level of brightness and 3 bars of brightness to be low level of brightness, since the screen with only 1 bar of brightness level is a completely blank screen, where we would be unable to see the battery level and proceed the measurement. For factor Display, I will vary between playing videos with sound and not playing videos at all. For factor Wi-Fi and Bluetooth, I will vary between turning off and turning on both of them.
+
+I performed 2 repetitions in a randomized order using R script prior to the measurement session, in order to ensure the replication is genuine for all 16 runs. My data measurement is as follow in Table2.
+
+```{r, echo=FALSE}
+kable_styling(knitr::kable(powerdat, caption='Data Measurement'), position='center')
+```
+Each data value recorded is for the response time $y$ averaged over two duplicate runs.
+
+# Method
+
+We fitted a linear model for our $2^3$ factorial design. The specific model is as follow:
+$$y_{i} = \beta_0 + \beta_1 x_{i1} + \beta_2 x_{i2} + \beta_3 x_{i3} + \beta_4 x_{i1}x_{i2}  + \beta_5 x_{i1}x_{i3}+ \beta_6 x_{i2}x_{i3} + \beta_7 x_{i1}x_{i2}x_{i3}+\epsilon_{i} $$
+Where $x_{i1}$ is the factor Display, $x_{i2}$ is the factor Wifi, $x_{i3}$ is the factor Brightness, $x_{i1}x_{i2}$ is the interaction between Display and Wifi,etc.\
+
+
+To determine the main effect of each factor, we plotted a cube plot, using which we can calculate the main effects for factor Display, Wifi and Brightness. To further investigate the interaction effects, we used the parameter estimates from the linear model that we fitted, and the interaction plots between factors. Since the fatorial estimates are twice the parameter estimates, we calculated the factorial effects from parameter estimates by multiplying the estamated coefficient by 2.
+
+# Analysis
+```{r, echo=FALSE}
+#Fit a linear model
+powermod <- lm(Time~Display*Wifi*Brightness,data=powerdat)
+Coef <- round(summary(powermod)$coefficient, 2)  #Coefficient Estimates
+kable_styling(knitr::kable(Coef,caption='Estimated parameters from the linear model'), position='center') 
+```
+According to Table3, we found that among all the parameters, coefficients for Display, Wifi and Brightness had a P-value smaller than a significance level 0.05. So we concluded that these 3 paramters were significant in terms of affecting the laptop battery draining time. However, all the interaction paramters were insignificant for a P-value greater than 0.05.
+
+## Some calculations from replicated runs:
+Estimated variance $\sigma_{i}^2$ of each of the 16 observations: $s_{i}^2 = (1.42\times2)^2 = 8.07$ \
+A pooled estimate of variance $\sigma^2$: $s^2 = \frac{\sum_{i=1}^{n}s_{i}^2}{8} = 8.07$ \
+Estimated variance of effects: Var(effect) = $(\frac{1}{8} + \frac{1}{8}) s^2 = 8.07/4 = 2.02$
+
+```{r, cubeplot,fig.width=5,fig.height=4,fig.align='center', echo=FALSE}
+cubePlot(powermod,"Display","Wifi", "Brightness", main=paste("Cube plot for power draining factors investigation"),cex.title=1,cex.lab=0.9,cex.clab=0.8, size=0.4)
+```
+
+```{r, echo=FALSE}
+#Main Effects
+Effect <- as.data.frame(Coef[-1,1]*2)
+colnames(Effect)[1] <- "Main Effect"
+kable_styling(knitr::kable(Effect, caption='Main effects for factors and their interactions'), position='center')
+```
+
+The main effects for each factor and their interactions were obtained by multiplying the estamated coefficient by 2 in Table4. According to the main effects table, displaying video shortened the battery draining time by 23.74 seconds per 5% battery on average; turning on Wifi shortened the battery draining time by 10.08 seconds per 5% battery on average; and adjusting for a brighter screen shortened the battery draining time by 6.9 seconds per 5% battery on average. \
+
+Since interaction parameters were all insignificant, there were no interaction effects between factors. The interaction plots for two factor interactions are shown below:
+
+```{r, fig.width=18,fig.height=4.5,fig.align='center', size=3, echo=FALSE}
+par(mfrow=c(1,3))
+# Interaction Plots
+interaction.plot(Display, Wifi, Time, type='l',  trace.label="Display", xlab='Wifi', ylab='Time Consumed')
+interaction.plot(Display, Brightness, Time, type='l', trace.label="Display", xlab='Brightness', ylab='Time Consumed')
+interaction.plot(Wifi, Brightness, Time, type='l', trace.label="Wifi and Bluetooth", xlab='Brightness', ylab='Time Consumed')
+```
+
+The three interaction plots are Wifi by Display, Brightness by Display, and Brightness by Wifi respectively. According to these three plots, no interaction occured. Although the two lines in each plot are not exactly parallel, there was no statistical significance of the effects. 
+
+```{r, echo=FALSE}
+# 95% CI
+CI <- round(2*confint.lm(powermod) [-1,],2)
+kable_styling(knitr::kable(CI, caption='Confidence Interval'), position='center')
+```
+
+We also obtained 95% confidence interval for all the factors and interactions as shown in Table5. We can interpret the confidence interval such that the mean difference between displaying video and not displaying video is $-17.20 - (-30.28) = 13.08$ 95% of the time, if you repeat the experiment. \
+
+Notably, the confidence intervals for factors Display, Wifi and Brightness did not contain 0, which again proved the significance of their effects. On the other hand, the confidence intervals for the interactions all contained 0, which indicated that the interaction effects were not significant. All the factors had an independent effect on the laptop battery draining time.
+
+# Conclusions
+I conducted a $2^3$ fatorial experiment with 2 replications to investigate the effects of displaying video, turning on Wifi, and adjusting the screen brightness level had on the laptop battery draining time. We fitted a linear model with covariates including factors and interactions. \
+
+From our data analysis, we found that there were enough evidences that displaying video, turning on Wifi, and adjusting the screen brightness level would all shorten the time consumed to drain the laptop battery. Particularly, Displaying video shortened the battery draining time the most whereas Brightness shortened the time the least. There were no evidence of interaction either graphically or statistically. So the effects of displaying video, turning on Wifi, and adjusting the screen brightness level are independent of each other. Therefore, to make our battery last longer, we could turn down the brightness level, turn off wifi when we are not using it, and most importantly, avoid playing video.
+
